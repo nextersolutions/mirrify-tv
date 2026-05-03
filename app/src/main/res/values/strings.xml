@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MirrifyTV</string>
+    <string name="app_subtitle">Cast your screen to TV</string>
+    <string name="btn_scan_qr">Scan QR Code on TV</string>
+    <string name="btn_stop">Stop Streaming</string>
+    <string name="status_idle">Ready to cast</string>
+    <string name="status_connecting">Connecting to TV…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_streaming">🔴 Streaming</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_error">Error: %1$s</string>
+    <string name="session_id">Session: %1$s</string>
+    <string name="scan_qr_prompt">Point camera at the QR code on your TV</string>
+    <string name="instructions">1. Open MirrifyTV on your TV\n2. Tap \"Scan QR Code\" here\n3. Point your camera at the TV screen\n4. Streaming begins automatically</string>
+</resources>

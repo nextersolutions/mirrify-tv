@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MirrifyTV</string>
+    <string name="tv_subtitle">Screen Mirroring Receiver</string>
+    <string name="tv_instruction_1">1. Install MirrifyTV on your phone</string>
+    <string name="tv_instruction_2">2. Open the app and tap "Scan QR Code"</string>
+    <string name="tv_instruction_3">3. Point your camera at the QR code →</string>
+    <string name="ip_address">Host: %1$s:%2$d</string>
+    <string name="session_label">Session: %1$s</string>
+    <string name="wifi_not_connected">⚠ Connect to WiFi to receive streams</string>
+    <string name="error_label">Error: %1$s</string>
+    <string name="connecting_label">Connecting…</string>
+    <string name="connected_label">Phone Connected!</string>
+    <string name="streaming_live">● LIVE</string>
+    <string name="stream_view_desc">Screen stream from mobile device</string>
+    <string name="qr_code_desc">QR code to connect mobile device</string>
+</resources>

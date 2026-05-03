@@ -1,0 +1,3 @@
+-keep class com.mirrifytv.shared.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**

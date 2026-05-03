@@ -1,0 +1,2 @@
+-keep class com.mirrifytv.** { *; }
+-keep class com.google.zxing.** { *; }
