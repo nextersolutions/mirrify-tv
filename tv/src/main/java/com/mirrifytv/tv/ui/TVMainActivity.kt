@@ -30,9 +30,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,38 +83,40 @@ class TVMainActivity : ComponentActivity() {
         refreshQRCode()
 
         setContent {
-            TVMirrifyTheme {
-                val state by ReceiverService.stateFlow.collectAsStateWithLifecycle()
-                val sessionId by sessionIdState
-                val qrBitmap by qrBitmapState
-                val ipAddress by ipAddressState
-                val wifiError by wifiErrorState
-                val currentFrame by currentFrameState
+            CompositionLocalProvider(LocalLifecycleOwner provides this@TVMainActivity) {
+                TVMirrifyTheme {
+                    val state by ReceiverService.stateFlow.collectAsStateWithLifecycle()
+                    val sessionId by sessionIdState
+                    val qrBitmap by qrBitmapState
+                    val ipAddress by ipAddressState
+                    val wifiError by wifiErrorState
+                    val currentFrame by currentFrameState
 
-                // Collect incoming frames
-                LaunchedEffect(Unit) {
-                    ReceiverService.frameFlow.collect { frame ->
-                        currentFrameState.value =
-                            BitmapFactory.decodeByteArray(frame.data, 0, frame.data.size)
+                    // Collect incoming frames
+                    LaunchedEffect(Unit) {
+                        ReceiverService.frameFlow.collect { frame ->
+                            currentFrameState.value =
+                                BitmapFactory.decodeByteArray(frame.data, 0, frame.data.size)
+                        }
                     }
-                }
 
-                // On disconnect, generate new session and refresh QR
-                LaunchedEffect(state) {
-                    if (state is StreamingState.Disconnected) {
-                        sessionIdState.value = UUID.randomUUID().toString().take(8)
-                        refreshQRCode()
+                    // On disconnect, generate new session and refresh QR
+                    LaunchedEffect(state) {
+                        if (state is StreamingState.Disconnected) {
+                            sessionIdState.value = UUID.randomUUID().toString().take(8)
+                            refreshQRCode()
+                        }
                     }
-                }
 
-                TVScreen(
-                    state = state,
-                    qrBitmap = qrBitmap,
-                    ipAddress = ipAddress,
-                    sessionId = sessionId,
-                    wifiError = wifiError,
-                    currentFrame = currentFrame,
-                )
+                    TVScreen(
+                        state = state,
+                        qrBitmap = qrBitmap,
+                        ipAddress = ipAddress,
+                        sessionId = sessionId,
+                        wifiError = wifiError,
+                        currentFrame = currentFrame,
+                    )
+                }
             }
         }
     }

@@ -44,8 +44,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -106,29 +108,31 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         setContent {
-            MirrifyTheme {
-                val streamingState by ScreenStreamingService.stateFlow.collectAsStateWithLifecycle()
-                val scanning by showScanner
-                val canDrawOverlays = mutableStateOf(checkOverlayPermission()).value
+            CompositionLocalProvider(LocalLifecycleOwner provides this@MainActivity) {
+                MirrifyTheme {
+                    val streamingState by ScreenStreamingService.stateFlow.collectAsStateWithLifecycle()
+                    val scanning by showScanner
+                    val canDrawOverlays = mutableStateOf(checkOverlayPermission()).value
 
-                AnimatedContent(
-                    targetState = scanning,
-                    transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) },
-                    label = "screen",
-                ) { isScanning ->
-                    if (isScanning) {
-                        QRScannerScreen(
-                            onQRCodeScanned = { json -> handleQRCode(json) },
-                            onDismiss = { showScanner.value = false },
-                        )
-                    } else {
-                        MainScreen(
-                            state = streamingState,
-                            canDrawOverlays = canDrawOverlays,
-                            onScanQR = { requestCameraAndScan() },
-                            onStop = { stopStreaming() },
-                            onRequestOverlayPermission = { requestOverlayPermission() },
-                        )
+                    AnimatedContent(
+                        targetState = scanning,
+                        transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(300)) },
+                        label = "screen",
+                    ) { isScanning ->
+                        if (isScanning) {
+                            QRScannerScreen(
+                                onQRCodeScanned = { json -> handleQRCode(json) },
+                                onDismiss = { showScanner.value = false },
+                            )
+                        } else {
+                            MainScreen(
+                                state = streamingState,
+                                canDrawOverlays = canDrawOverlays,
+                                onScanQR = { requestCameraAndScan() },
+                                onStop = { stopStreaming() },
+                                onRequestOverlayPermission = { requestOverlayPermission() },
+                            )
+                        }
                     }
                 }
             }

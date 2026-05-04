@@ -22,7 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,8 +33,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
@@ -133,8 +133,14 @@ class FloatingOverlayService : LifecycleService() {
             setViewTreeViewModelStoreOwner(vmStoreOwner)
             setViewTreeSavedStateRegistryOwner(savedStateOwner)
             setContent {
-                MirrifyTheme {
-                    StreamingOverlayPill(onStop = ::stopStreaming)
+                // When ComposeView is added via WindowManager (not inside an Activity window),
+                // Compose cannot walk the view tree to inject LocalLifecycleOwner automatically.
+                // We must provide it explicitly so composables like rememberInfiniteTransition
+                // (which access LocalLifecycleOwner.current internally) don't crash.
+                CompositionLocalProvider(LocalLifecycleOwner provides this@FloatingOverlayService) {
+                    MirrifyTheme {
+                        StreamingOverlayPill(onStop = ::stopStreaming)
+                    }
                 }
             }
         }

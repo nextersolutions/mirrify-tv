@@ -1,5 +1,6 @@
 package com.mirrifytv.mobile.ui
 
+import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -45,12 +46,22 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Composable
-fun QRScannerScreen(onQRCodeScanned: (String) -> Unit, onDismiss: () -> Unit) {
+fun QRScannerScreen(
+    onQRCodeScanned: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val previewView = remember { PreviewView(context) }
     val hasScanned = remember { AtomicBoolean(false) }
-    val executor = remember { Executors.newSingleThreadExecutor() }
+
+    // Single-thread executor for analysis
+    val cameraExecutor = remember {
+        Executors.newSingleThreadExecutor()
+    }
+
+    // ML Kit scanner
     val barcodeScanner = remember {
         BarcodeScanning.getClient(
             BarcodeScannerOptions.Builder()
@@ -59,60 +70,75 @@ fun QRScannerScreen(onQRCodeScanned: (String) -> Unit, onDismiss: () -> Unit) {
         )
     }
 
-    DisposableEffect(Unit) {
+    /**
+     * 🔥 CAMERA LIFECYCLE — THE RIGHT WAY
+     */
+    DisposableEffect(lifecycleOwner) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
+        val listener = Runnable {
+            val cameraProvider = cameraProviderFuture.get()
+
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+
+            analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                processImageProxy(barcodeScanner, imageProxy) { value ->
+                    if (hasScanned.compareAndSet(false, true)) {
+                        onQRCodeScanned(value)
+                    }
+                }
+            }
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    analysis,
+                )
+            } catch (e: Exception) {
+                Log.e("QRScannerScreen", e.message, e)
+            }
+        }
+
+        cameraProviderFuture.addListener(
+            listener,
+            ContextCompat.getMainExecutor(context)
+        )
+
         onDispose {
+            runCatching {
+                cameraProviderFuture.get().unbindAll()
+            }
+            cameraExecutor.shutdown()
             barcodeScanner.close()
-            executor.shutdown()
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    /**
+     * 🎨 UI LAYER
+     */
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
 
-        // Camera preview fills the screen
         AndroidView(
-            factory = { ctx ->
-                val previewView = PreviewView(ctx)
-                val future = ProcessCameraProvider.getInstance(ctx)
-
-                future.addListener({
-                    val provider = future.get()
-
-                    val preview = Preview.Builder().build()
-                        .also { it.setSurfaceProvider(previewView.surfaceProvider) }
-
-                    val analysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-                        .also { ia ->
-                            ia.setAnalyzer(executor) { proxy ->
-                                processImageProxy(barcodeScanner, proxy) { value ->
-                                    if (hasScanned.compareAndSet(false, true)) {
-                                        onQRCodeScanned(value)
-                                    }
-                                }
-                            }
-                        }
-
-                    runCatching {
-                        provider.unbindAll()
-                        provider.bindToLifecycle(
-                            lifecycleOwner,
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            analysis,
-                        )
-                    }
-                }, ContextCompat.getMainExecutor(ctx))
-
-                previewView
-            },
+            factory = { previewView },
             modifier = Modifier.fillMaxSize(),
         )
 
-        // Viewfinder — centred white-cornered square
         Viewfinder(modifier = Modifier.align(Alignment.Center))
 
-        // Dismiss button — top end
+        // Close button
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -130,7 +156,7 @@ fun QRScannerScreen(onQRCodeScanned: (String) -> Unit, onDismiss: () -> Unit) {
             )
         }
 
-        // Prompt — bottom centre
+        // Hint
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
